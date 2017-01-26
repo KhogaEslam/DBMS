@@ -1,2 +1,3 @@
-id;name;sal
-1;eslam;1000
+id;sal
+1;1000
+2;10000

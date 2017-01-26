@@ -370,7 +370,7 @@ function updaterecord(){ ##update table tblName set {CHANGES} || No Validation o
               #print $ind
               #print av
               line=""
-              for(i=1;i<=NF;i++)
+              for(i=1;i<NF;i++)
               {
                 #print "000"
                 #print i
@@ -650,6 +650,90 @@ function altertable(){ ##alter table tblName add column colName | alter table tb
           fi
         elif [ "${arr[3]}" = "drop" ]; then
           echo "Altering Table, Dropping Column";
+          flag=`awk -F'::' -v val="${arr[5]}" 'BEGIN {
+                IGNORECASE=1;
+              }
+              {
+
+                if($1==val)
+                {
+                  if($2=="y")
+                  print "1";
+                }
+              }
+              END {
+
+            }' "$tableName"`
+          echo $flag;
+          if [ "$flag" != "1" ]; then
+            echo "Dropping Column ${arr[5]}"
+            if [ -f temp ]
+            then
+            rm temp
+            fi
+            awk -F'::' -v val="${arr[5]}" 'BEGIN {
+                  IGNORECASE=1;
+                }
+                {
+                  if($1!=val)
+                  {
+                    print $0;
+                  }
+                }
+                END {
+
+              }' "$tableName" >> temp
+              cat temp > "$tableName"
+
+              var=`head -n 1 $tn`
+              IFS=";" read -a fields <<< "$var";
+
+              index=1;
+              for f in "${fields[@]}"
+                do
+                  if [ $f == "${arr[5]}" ]; then
+                    echo $f;
+                    echo $index;
+                    echo ${arr[5]};
+                    break;
+                  else
+                    echo $f
+                    index=`expr $index + 1`
+                    echo $index;
+                    echo ${arr[5]};
+                  fi
+              done
+              if [ -f temp ]
+              then
+              rm temp
+              fi
+              awk -F';' -v ind="$index" 'BEGIN {
+                  IGNORECASE=1;
+                }
+                {
+                      line=""
+                      for(i=1;i<=NF;i++)
+                      {
+                        #print "000"
+                        #print i
+                        #print pos
+                        #print line
+                        if(i!=ind)
+                        {
+                          if(i!=NF)
+                            line=line $i";"
+                          else
+                            line=line $i
+                        }
+                        #print "02"
+                        #print line
+                      }
+                    print line
+                }' "$tn" > temp
+                cat temp > "$tn"
+          else
+            echo "Can't Drop Primary Key!"
+          fi
         else
           echo "Alter Syntax Error!"
         fi
